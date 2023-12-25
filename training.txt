@@ -1,0 +1,46 @@
+# training.py
+import pyodbc
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import joblib
+
+def load_training_data():
+    conn = pyodbc.connect('Driver={SQL Server};'
+                          'Server=DESKTOP-HJ3ORQ9\QUYNHAT;'
+                          'Database=SmartHome;'
+                          'Trusted_Connection=yes;'
+                          )
+    cursor = conn.cursor()
+
+    # Truy vấn dữ liệu từ bảng TrainSet
+    cursor.execute("SELECT NhietDo, DoAm, Gas, AmThanh, AnhSang, label FROM TrainSet")
+    rows = cursor.fetchall()
+
+    # Chuyển đổi dữ liệu thành features và labels
+    features = [[float(row.NhietDo), float(row.DoAm), float(row.Gas), float(row.AmThanh), float(row.AnhSang)] for row in rows]
+    labels = [int(row.label) for row in rows]
+
+    return features, labels
+
+def train_knn_model(features, labels, k=3):
+    # Chia dữ liệu thành tập huấn luyện và tập kiểm thử
+    X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=42)
+
+    # Tạo và huấn luyện mô hình KNN
+    knn_model = KNeighborsClassifier(n_neighbors=k)
+    knn_model.fit(X_train, y_train)
+
+    # Đánh giá hiệu suất của mô hình trên tập kiểm thử
+    y_pred = knn_model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Accuracy of KNN model: {accuracy}")
+
+    # Lưu mô hình vào một tệp
+    joblib.dump(knn_model, 'knn_model.joblib')
+
+if __name__ == '__main__':
+    # Gọi hàm load_training_data để lấy dữ liệu
+    features, labels = load_training_data()
+    # Gọi hàm train_knn_model để huấn luyện mô hình KNN
+    train_knn_model(features, labels)
